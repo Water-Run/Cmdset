@@ -1,19 +1,8 @@
 @echo off
-setlocal
+setlocal EnableExtensions DisableDelayedExpansion
 
-powershell -NoLogo -NoProfile -ExecutionPolicy Bypass -Command ^
-  "& { ^
-    $ErrorActionPreference='Stop'; ^
-    if($args.Count -eq 0){ ^
-      Get-ChildItem Env: ^| Sort-Object Name ^| ForEach-Object { '{0}={1}' -f $_.Name, $_.Value }; ^
-      exit 0 ^
-    } ^
-    $failed = $false; ^
-    foreach($n in $args){ ^
-      $v = [Environment]::GetEnvironmentVariable($n); ^
-      if($null -eq $v){ $failed = $true } else { $v } ^
-    } ^
-    if($failed){ exit 1 } ^
-  }" %*
+set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
+where pwsh >nul 2>nul && set "PS_EXE=pwsh"
 
+"%PS_EXE%" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0printenv.ps1" %*
 exit /b %errorlevel%

@@ -1,8 +1,8 @@
 @echo off
-setlocal
-
-set "PS_EXE=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
-where pwsh >nul 2>nul && set "PS_EXE=pwsh"
-
-"%PS_EXE%" -NoLogo -NoProfile -ExecutionPolicy Bypass -File "%~dp0winenv.ps1" %*
-exit /b %errorlevel%
+chcp 65001 >nul 2>&1
+if errorlevel 1 (
+    echo [ERROR] Failed to set code page to UTF-8.
+    exit /b 1
+)
+echo Active code page: 65001
+exit /b 0
