@@ -26,7 +26,6 @@ powershell ./_test/test.ps1
 | 命令       | 说明                                                             |
 |------------|------------------------------------------------------------------|
 | `reboot`   | 重启                                                             |
-| `shutdown` | 兼容 Windows `shutdown`，额外支持 `shutdown now`                 |
 | `halt`     | 立即关机                                                         |
 | `logout`   | 注销当前用户                                                     |
 | `which`    | 使用 PowerShell `Get-Command` 查询命令路径，支持多命令           |

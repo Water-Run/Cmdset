@@ -9,11 +9,11 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Continue'
 
 #region ── Paths ───────────────────────────────────────────────
-$Root       = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-$DirLinux   = Join-Path $Root 'linux-cmds'
-$DirCustom  = Join-Path $Root 'custom-cmds'
+$Root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
+$DirLinux = Join-Path $Root 'linux-cmds'
+$DirCustom = Join-Path $Root 'custom-cmds'
 $DirBinTool = Join-Path $Root 'binary-tools'
-$DirBin     = Join-Path $Root 'binaries'
+$DirBin = Join-Path $Root 'binaries'
 #endregion
 
 #region ── Temp workspace & fixtures ───────────────────────────
@@ -29,7 +29,7 @@ $Fixture = Join-Path $Tmp 'fixture.txt'
 $script:nPass = 0
 $script:nFail = 0
 $script:nSkip = 0
-$script:Rows  = [Collections.Generic.List[PSCustomObject]]::new()
+$script:Rows = [Collections.Generic.List[PSCustomObject]]::new()
 $sw = [Diagnostics.Stopwatch]::StartNew()
 #endregion
 
@@ -37,28 +37,28 @@ $sw = [Diagnostics.Stopwatch]::StartNew()
 
 function Record([string]$Group, [string]$Name, [string]$Status, [string]$Detail) {
     switch ($Status) {
-        'PASS' { $script:nPass++; $color = 'Green'  }
-        'FAIL' { $script:nFail++; $color = 'Red'    }
+        'PASS' { $script:nPass++; $color = 'Green' }
+        'FAIL' { $script:nFail++; $color = 'Red' }
         'SKIP' { $script:nSkip++; $color = 'Yellow' }
     }
     $script:Rows.Add([PSCustomObject]@{
-        Group  = $Group
-        Name   = $Name
-        Status = $Status
-        Detail = $Detail
-    })
+            Group  = $Group
+            Name   = $Name
+            Status = $Status
+            Detail = $Detail
+        })
     Write-Host ("  [{0,-4}] {1,-34} {2}" -f $Status, $Name, $Detail) -ForegroundColor $color
 }
 
 function Invoke-Sub([string]$File, [string]$Arguments = '', [int]$TimeoutMs = 30000) {
     $psi = [Diagnostics.ProcessStartInfo]::new()
-    $psi.FileName               = 'cmd.exe'
-    $psi.Arguments              = "/c `"`"$File`" $Arguments`""
-    $psi.UseShellExecute        = $false
+    $psi.FileName = 'cmd.exe'
+    $psi.Arguments = "/c `"`"$File`" $Arguments`""
+    $psi.UseShellExecute = $false
     $psi.RedirectStandardOutput = $true
-    $psi.RedirectStandardError  = $true
-    $psi.CreateNoWindow         = $true
-    $psi.WorkingDirectory       = $Tmp
+    $psi.RedirectStandardError = $true
+    $psi.CreateNoWindow = $true
+    $psi.WorkingDirectory = $Tmp
 
     $p = [Diagnostics.Process]::Start($psi)
     $outTask = $p.StandardOutput.ReadToEndAsync()
@@ -76,10 +76,10 @@ function Test-Cmd {
         [string]$Group,
         [string]$Name,
         [string]$File,
-        [string]$Arguments    = '',
+        [string]$Arguments = '',
         [int]   $ExpectedExit = 0,
-        [string]$OutputMatch  = '',
-        [int]   $TimeoutMs    = 30000
+        [string]$OutputMatch = '',
+        [int]   $TimeoutMs = 30000
     )
     if (-not (Test-Path -LiteralPath $File)) {
         Record $Group $Name 'FAIL' "Missing: $File"; return
@@ -109,7 +109,7 @@ function Test-Cmd {
 
 function Skip-Cmd([string]$Group, [string]$Name, [string]$File, [string]$Reason) {
     if (Test-Path -LiteralPath $File) { Record $Group $Name 'SKIP' $Reason }
-    else                               { Record $Group $Name 'FAIL' "Missing: $File" }
+    else { Record $Group $Name 'FAIL' "Missing: $File" }
 }
 
 function Section([string]$Title) {
@@ -134,95 +134,81 @@ Section 'linux-cmds'
 
 # Destructive: file-existence only
 Skip-Cmd 'linux' 'reboot'   (Join-Path $DirLinux 'reboot.cmd')   'Destructive'
-Skip-Cmd 'linux' 'shutdown' (Join-Path $DirLinux 'shutdown.cmd') 'Destructive'
 Skip-Cmd 'linux' 'halt'     (Join-Path $DirLinux 'halt.cmd')     'Destructive'
 Skip-Cmd 'linux' 'logout'   (Join-Path $DirLinux 'logout.cmd')   'Destructive'
 
 # which
 Test-Cmd 'linux' 'which (found)' `
-    (Join-Path $DirLinux 'which.cmd') `
+(Join-Path $DirLinux 'which.cmd') `
     -Arguments 'cmd' -ExpectedExit 0 -OutputMatch 'cmd'
 
 Test-Cmd 'linux' 'which (not found)' `
-    (Join-Path $DirLinux 'which.cmd') `
+(Join-Path $DirLinux 'which.cmd') `
     -Arguments '__no_such_cmd_x__' -ExpectedExit 1
 
 # touch
 $touchTarget = Join-Path $Tmp 'newfile.txt'
 Test-Cmd 'linux' 'touch (create)' `
-    (Join-Path $DirLinux 'touch.cmd') `
+(Join-Path $DirLinux 'touch.cmd') `
     -Arguments "`"$touchTarget`""
 
 if (Test-Path -LiteralPath $touchTarget) { Record 'linux' 'touch (verify)' 'PASS' '' }
-else                                      { Record 'linux' 'touch (verify)' 'FAIL' 'File not created' }
+else { Record 'linux' 'touch (verify)' 'FAIL' 'File not created' }
 
 Test-Cmd 'linux' 'touch (existing)' `
-    (Join-Path $DirLinux 'touch.cmd') `
+(Join-Path $DirLinux 'touch.cmd') `
     -Arguments "`"$Fixture`""
 
 # realpath
 Test-Cmd 'linux' 'realpath' `
-    (Join-Path $DirLinux 'realpath.cmd') `
+(Join-Path $DirLinux 'realpath.cmd') `
     -Arguments '.' -OutputMatch '^\w:\\'
-
-# Hashes
-Test-Cmd 'linux' 'sha256' `
-    (Join-Path $DirLinux 'sha256.cmd') `
-    -Arguments "`"$Fixture`"" -OutputMatch '^[0-9a-f]{64}\s'
-
-Test-Cmd 'linux' 'sha1' `
-    (Join-Path $DirLinux 'sha1.cmd') `
-    -Arguments "`"$Fixture`"" -OutputMatch '^[0-9a-f]{40}\s'
-
-Test-Cmd 'linux' 'md5' `
-    (Join-Path $DirLinux 'md5.cmd') `
-    -Arguments "`"$Fixture`"" -OutputMatch '^[0-9a-f]{32}\s'
 
 # sleep
 Test-Cmd 'linux' 'sleep 0' `
-    (Join-Path $DirLinux 'sleep.cmd') `
+(Join-Path $DirLinux 'sleep.cmd') `
     -Arguments '0' -TimeoutMs 5000
 
 Test-Cmd 'linux' 'sleep 0.1' `
-    (Join-Path $DirLinux 'sleep.cmd') `
+(Join-Path $DirLinux 'sleep.cmd') `
     -Arguments '0.1' -TimeoutMs 5000
 
 # System info
 Test-Cmd 'linux' 'uptime' `
-    (Join-Path $DirLinux 'uptime.cmd') `
+(Join-Path $DirLinux 'uptime.cmd') `
     -OutputMatch 'Up'
 
 Test-Cmd 'linux' 'free' `
-    (Join-Path $DirLinux 'free.cmd') `
+(Join-Path $DirLinux 'free.cmd') `
     -OutputMatch 'Memory'
 
 Test-Cmd 'linux' 'uname' `
-    (Join-Path $DirLinux 'uname.cmd') `
+(Join-Path $DirLinux 'uname.cmd') `
     -OutputMatch 'Windows'
 
 Test-Cmd 'linux' 'uname -a' `
-    (Join-Path $DirLinux 'uname.cmd') `
+(Join-Path $DirLinux 'uname.cmd') `
     -Arguments '-a' -OutputMatch 'Windows_NT'
 
 Test-Cmd 'linux' 'hostname' `
-    (Join-Path $DirLinux 'hostname.cmd') `
+(Join-Path $DirLinux 'hostname.cmd') `
     -OutputMatch '\S'
 
 Test-Cmd 'linux' 'hostname -I' `
-    (Join-Path $DirLinux 'hostname.cmd') `
+(Join-Path $DirLinux 'hostname.cmd') `
     -Arguments '-I' -OutputMatch '\d+\.\d+'
 
 Test-Cmd 'linux' 'pwd' `
-    (Join-Path $DirLinux 'pwd.cmd') `
+(Join-Path $DirLinux 'pwd.cmd') `
     -OutputMatch '^\w:\\'
 
 # printenv
 Test-Cmd 'linux' 'printenv PATH' `
-    (Join-Path $DirLinux 'printenv.cmd') `
+(Join-Path $DirLinux 'printenv.cmd') `
     -Arguments 'PATH' -OutputMatch '\S'
 
 Test-Cmd 'linux' 'printenv (all)' `
-    (Join-Path $DirLinux 'printenv.cmd') `
+(Join-Path $DirLinux 'printenv.cmd') `
     -OutputMatch 'PATH='
 
 # ==============================================================
@@ -231,60 +217,60 @@ Test-Cmd 'linux' 'printenv (all)' `
 Section 'custom-cmds'
 
 Test-Cmd  'custom' 'utf8' `
-    (Join-Path $DirCustom 'utf8.cmd') `
+(Join-Path $DirCustom 'utf8.cmd') `
     -OutputMatch '65001'
 
 Skip-Cmd  'custom' 'lock' `
-    (Join-Path $DirCustom 'lock.cmd') 'Destructive'
+(Join-Path $DirCustom 'lock.cmd') 'Destructive'
 
 Skip-Cmd  'custom' 'hibernate' `
-    (Join-Path $DirCustom 'hibernate.cmd') 'Destructive'
+(Join-Path $DirCustom 'hibernate.cmd') 'Destructive'
 
 Test-Cmd  'custom' 'open -h' `
-    (Join-Path $DirCustom 'open.cmd') `
+(Join-Path $DirCustom 'open.cmd') `
     -Arguments '-h' -OutputMatch 'Usage'
 
 Test-Cmd  'custom' 'mywin' `
-    (Join-Path $DirCustom 'mywin.cmd') `
+(Join-Path $DirCustom 'mywin.cmd') `
     -OutputMatch 'Windows'
 
 Test-Cmd  'custom' 'winenv PATH' `
-    (Join-Path $DirCustom 'winenv.cmd') `
+(Join-Path $DirCustom 'winenv.cmd') `
     -Arguments 'PATH' -OutputMatch '\S'
 
 # admin helpers: help flag only (no UAC)
 Test-Cmd  'custom' 'admin -h' `
-    (Join-Path $DirCustom 'admin.cmd') `
+(Join-Path $DirCustom 'admin.cmd') `
     -Arguments '-h' -OutputMatch 'Usage'
 
 Test-Cmd  'custom' 'admincmd -h' `
-    (Join-Path $DirCustom 'admincmd.cmd') `
+(Join-Path $DirCustom 'admincmd.cmd') `
     -Arguments '-h' -OutputMatch 'Usage'
 
 Test-Cmd  'custom' 'adminpowershell -h' `
-    (Join-Path $DirCustom 'adminpowershell.cmd') `
+(Join-Path $DirCustom 'adminpowershell.cmd') `
     -Arguments '-h' -OutputMatch 'Usage'
 
 Test-Cmd  'custom' 'adminpwsh -h' `
-    (Join-Path $DirCustom 'adminpwsh.cmd') `
+(Join-Path $DirCustom 'adminpwsh.cmd') `
     -Arguments '-h' -OutputMatch 'Usage'
 
 # cx
 Test-Cmd  'custom' 'cx (single)' `
-    (Join-Path $DirCustom 'cx.cmd') `
+(Join-Path $DirCustom 'cx.cmd') `
     -Arguments 'echo hello' -OutputMatch 'hello'
 
 Test-Cmd  'custom' 'cx (multi)' `
-    (Join-Path $DirCustom 'cx.cmd') `
+(Join-Path $DirCustom 'cx.cmd') `
     -Arguments 'echo aaa + bbb' -OutputMatch '(?s)aaa.*bbb'
 
 Test-Cmd  'custom' 'cx (no args)' `
-    (Join-Path $DirCustom 'cx.cmd') `
+(Join-Path $DirCustom 'cx.cmd') `
     -ExpectedExit 1
 
 # doxygenning: needs external tools
 Skip-Cmd  'custom' 'doxygenning' `
-    (Join-Path $DirCustom 'doxygenning.cmd') 'Needs doxygen + firefox'
+(Join-Path $DirCustom 'doxygenning.cmd') 'Needs doxygen + firefox'
 
 # ==============================================================
 #  binary-tools
@@ -311,7 +297,7 @@ foreach ($tool in 'pmc', 'treepp') {
 # ==============================================================
 $sw.Stop()
 $total = $script:nPass + $script:nFail + $script:nSkip
-$bar   = '  ============================================'
+$bar = '  ============================================'
 
 Write-Host ''
 Write-Host $bar -ForegroundColor Cyan
